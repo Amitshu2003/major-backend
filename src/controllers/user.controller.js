@@ -202,4 +202,108 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(req.user?._id);
+  const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordValid) {
+    return res.status(400).json({ error: "Invalid Old Password" });
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res.status(200).json({ message: "Password Changed Successfully" });
+};
+
+const getCurrentUser = async (req, res) => {
+  return res
+    .status(200)
+    .json({ data: req.user, message: "User fetched successfully" });
+};
+
+const updateAccountDetails = async (req, res) => {
+  const { fullName, email } = req.body;
+  if (!fullName || !email) {
+    return res.status(400).json({ error: " all fields are required" });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json({ data: user, message: "Account details updated successfully" });
+};
+
+const updateUserAvatar = async (req, res) => {
+  const avatarlocalPath = req.file?.path;
+  if (!avatarlocalPath) {
+    return res.status(400).json({ error: "Avatar file is missing" });
+  }
+
+  const avatar = await uploadOnCloudinary(avatarlocalPath);
+  if (!avatar.url) {
+    return res.status(400).json({ error: "Error while updating avatar " });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar?.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json({ data: user, message: "Avatar updated Successfully" });
+};
+
+const updateUserCoverImage = async (req, res) => {
+  const coverImagelocalPath = req.file?.path;
+  if (!coverImagelocalPath) {
+    return res.status(400).json({ error: "Cover Image file is missing" });
+  }
+
+  const coverImage = await uploadOnCloudinary(coverImagelocalPath);
+  if (!coverImage.url) {
+    return res.status(400).json({ error: "Error while updating Cover Image" });
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage?.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json({ data: user, message: "Cover Image Updated Successfully" });
+};
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
+};
